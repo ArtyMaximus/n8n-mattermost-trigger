@@ -1,0 +1,60 @@
+{
+  "name": "n8n-nodes-mattermost-trigger",
+  "version": "0.1.0",
+  "description": "N8N node community. For receive Mattermost events",
+  "keywords": [
+    "n8n-community-node-package",
+    "mattermost",
+    "trigger"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "author": {
+    "name": "Alexey Gusev",
+    "email": "alexey.gusev@k2consult.ru"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myluffe/n8n-nodes-mattermost-trigger"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "pnpm": ">=9.1"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "npm build && npm lint -c .eslintrc.prepublish.js nodes credentials package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/MattermostTriggerApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/MattermostTrigger/MattermostTrigger.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/parser": "~8.32.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "gulp": "^5.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "ws": "^8.18.2"
+  }
+}
