@@ -1,19 +1,19 @@
 {
-    "node": "n8n-nodes-base.MattermostTrigger",
+    "node": "n8n-nodes-base.mattermostTriggerEnhanced",
     "nodeVersion": "1.0",
     "codexVersion": "1.0",
     "categories": [
-        "Miscellaneous"
+        "Communication"
     ],
     "resources": {
         "credentialDocumentation": [
             {
-                "url": ""
+                "url": "https://developers.mattermost.com/integrate/reference/personal-access-token/"
             }
         ],
         "primaryDocumentation": [
             {
-                "url": ""
+                "url": "https://github.com/ArtyMaximus/n8n-mattermost-trigger"
             }
         ]
     }

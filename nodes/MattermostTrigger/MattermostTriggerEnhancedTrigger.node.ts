@@ -29,8 +29,8 @@ export class MattermostTriggerEnhancedTrigger implements INodeType {
 			// Resources and operations will go here
 			...MattermostTriggerOptions,
 		],
-		displayName: 'Mattermost Event Trigger (Enhanced) Trigger',
-		name: 'mattermostTriggerEnhancedTrigger',
+		displayName: 'Mattermost Trigger Enhanced',
+		name: 'mattermostTriggerEnhanced',
 		icon: 'file:mattermost-logo.svg',
 		group: ['trigger'],
 		version: 1,
