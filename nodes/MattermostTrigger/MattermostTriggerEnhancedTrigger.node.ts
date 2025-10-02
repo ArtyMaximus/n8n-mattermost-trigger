@@ -22,7 +22,7 @@ import {
 import { Data, WebSocket } from 'ws';
 import { MattermostTriggerOptions } from './MattermostTriggerDescription';
 
-export class MattermostTriggerEnhanced implements INodeType {
+export class MattermostTriggerEnhancedTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		// Basic node details will go here
 		properties: [

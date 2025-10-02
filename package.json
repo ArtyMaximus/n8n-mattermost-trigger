@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArtyMaximus/n8n-mattermost-trigger.git"
+    "url": "git+https://github.com/ArtyMaximus/n8n-mattermost-trigger.git"
   },
   "engines": {
     "node": ">=18.10",
@@ -40,7 +40,7 @@
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
     "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+    "prepublishOnly": "npm run build && npx eslint nodes credentials package.json -c .eslintrc.prepublish.js"
   },
   "files": [
     "dist"
@@ -51,7 +51,7 @@
       "dist/credentials/MattermostTriggerEnhancedApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/MattermostTrigger/MattermostTrigger.node.js"
+      "dist/nodes/MattermostTrigger/MattermostTriggerEnhancedTrigger.node.js"
     ]
   },
   "devDependencies": {
