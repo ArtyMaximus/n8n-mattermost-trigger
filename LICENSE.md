@@ -1,4 +1,8 @@
-Copyright 2022 n8n
+Copyright 2022 n8n (original work)
+Copyright 2024 Enhanced version contributors
+
+Based on the original n8n-nodes-mattermost-trigger by Alexey Gusev
+Enhanced with auto-reconnection and heartbeat monitoring features.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

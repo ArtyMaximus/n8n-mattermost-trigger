@@ -1,21 +1,33 @@
 {
-  "name": "n8n-nodes-mattermost-trigger",
-  "version": "0.1.0",
-  "description": "N8N node community. For receive Mattermost events",
+  "name": "@artymaximus/n8n-mattermost-trigger",
+  "version": "0.2.0",
+  "description": "Enhanced N8N node with auto-reconnection for Mattermost events",
   "keywords": [
     "n8n-community-node-package",
     "mattermost",
-    "trigger"
+    "trigger",
+    "enhanced",
+    "auto-reconnect",
+    "heartbeat"
   ],
   "license": "MIT",
-  "homepage": "",
-  "author": {
-    "name": "Alexey Gusev",
-    "email": "alexey.gusev@k2consult.ru"
+  "homepage": "https://www.npmjs.com/package/@artymaximus/n8n-mattermost-trigger",
+  "publishConfig": {
+    "access": "public"
   },
+  "author": {
+    "name": "Enhanced version contributors"
+  },
+  "contributors": [
+    {
+      "name": "Alexey Gusev",
+      "email": "alexey.gusev@k2consult.ru",
+      "role": "Original author"
+    }
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/myluffe/n8n-nodes-mattermost-trigger"
+    "url": "https://github.com/artymaximus/n8n-mattermost-trigger.git"
   },
   "engines": {
     "node": ">=18.10",
@@ -36,7 +48,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/MattermostTriggerApi.credentials.js"
+      "dist/credentials/MattermostTriggerEnhancedApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/MattermostTrigger/MattermostTrigger.node.js"

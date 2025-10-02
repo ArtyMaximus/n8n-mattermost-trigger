@@ -1,2 +1,33 @@
-.DS_Store
+# Source files
+nodes/
+credentials/
+*.ts
+tsconfig.json
+gulpfile.js
+
+# Development files
+node_modules/
+.git/
+.gitignore
+pnpm-lock.yaml
+
+# Build artifacts
 *.tsbuildinfo
+*.tgz
+
+# Documentation for developers
+CODE_OF_CONDUCT.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

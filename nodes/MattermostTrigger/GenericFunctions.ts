@@ -32,6 +32,9 @@ export function InitClient(baseUrl: string, token: string): WebSocket {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
+		handshakeTimeout: 30000,
+		perMessageDeflate: false,
+		skipUTF8Validation: false,
 	});
 }
 
