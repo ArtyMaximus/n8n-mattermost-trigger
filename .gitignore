@@ -51,3 +51,12 @@ coverage/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Lock files (use npm or yarn, not both)
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# IDE specific files
+.vscode/
+CODE_OF_CONDUCT.md
