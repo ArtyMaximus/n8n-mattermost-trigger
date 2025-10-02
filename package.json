@@ -1,22 +1,31 @@
 {
-  "name": "@artymaximus/n8n-mattermost-trigger",
+  "name": "@artymaximus/n8n-nodes-mattermost-trigger-enhanced",
   "version": "0.2.1",
   "description": "Enhanced N8N node with auto-reconnection for Mattermost events",
   "keywords": [
     "n8n-community-node-package",
     "mattermost",
     "trigger",
+    "webhook",
+    "websocket",
+    "chat",
+    "messaging",
     "enhanced",
     "auto-reconnect",
-    "heartbeat"
+    "heartbeat",
+    "reliability"
   ],
   "license": "MIT",
-  "homepage": "https://www.npmjs.com/package/@artymaximus/n8n-mattermost-trigger",
+  "homepage": "https://www.npmjs.com/package/@artymaximus/n8n-nodes-mattermost-trigger-enhanced",
   "publishConfig": {
     "access": "public"
   },
   "author": {
-    "name": "Enhanced version contributors"
+    "name": "ArtyMaximus",
+    "email": "aza-artyom@yandex.ru"
+  },
+  "bugs": {
+    "url": "https://github.com/ArtyMaximus/n8n-mattermost-trigger/issues"
   },
   "contributors": [
     {
