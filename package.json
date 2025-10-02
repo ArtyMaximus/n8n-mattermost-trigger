@@ -60,7 +60,7 @@
       "dist/credentials/MattermostTriggerEnhancedApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/MattermostTrigger/MattermostTriggerEnhancedTrigger.node.js"
+      "dist/nodes/MattermostEnhancedTrigger/MattermostEnhancedTrigger.node.js"
     ]
   },
   "devDependencies": {
