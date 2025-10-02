@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/artymaximus/n8n-mattermost-trigger.git"
+    "url": "https://github.com/ArtyMaximus/n8n-mattermost-trigger.git"
   },
   "engines": {
     "node": ">=18.10",
