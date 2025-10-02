@@ -60,3 +60,7 @@ package-lock.json
 # IDE specific files
 .vscode/
 CODE_OF_CONDUCT.md
+
+# Local utility scripts
+update-package.ps1
+check-sync.ps1
