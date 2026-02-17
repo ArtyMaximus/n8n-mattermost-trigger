@@ -27,7 +27,8 @@ export async function getToken(baseURl: string, username: string, password: stri
 */
 
 export function InitClient(baseUrl: string, token: string): WebSocket {
-	const wsUrl = `${baseUrl.toLocaleLowerCase().trim().replace('https', 'wss').replace('http', 'ws')}/api/v4/websocket`;
+	const normalized = baseUrl.toLocaleLowerCase().trim().replace(/\/+$/, '');
+	const wsUrl = `${normalized.replace('https', 'wss').replace('http', 'ws')}/api/v4/websocket`;
 	return new WebSocket(wsUrl, {
 		headers: {
 			Authorization: `Bearer ${token}`,

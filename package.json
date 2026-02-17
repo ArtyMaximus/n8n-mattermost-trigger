@@ -1,6 +1,6 @@
 {
   "name": "@artymaximus/n8n-nodes-mattermost-trigger-enhanced",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Enhanced N8N node with auto-reconnection for Mattermost events",
   "keywords": [
     "n8n-community-node-package",
@@ -75,7 +75,5 @@
   "peerDependencies": {
     "n8n-workflow": "*"
   },
-  "dependencies": {
-    "ws": "^8.18.2"
-  }
+  "dependencies": {}
 }
