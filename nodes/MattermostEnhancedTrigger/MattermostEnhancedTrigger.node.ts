@@ -1,7 +1,3 @@
-/*import {
-	IExecuteFunctions,
-} from 'n8n-core';*/
-
 import {
 	INodeType,
 	INodeTypeDescription,
@@ -9,32 +5,31 @@ import {
 	ITriggerResponse,
 	NodeConnectionType,
 } from 'n8n-workflow';
-import {
-	//MattermostAuthType,
-	MattermostEnhancedCredentialData,
-} from '../../credentials/MattermostTriggerEnhancedApi.credentials';
+import { MattermostEnhancedCredentialData } from '../../credentials/MattermostTriggerEnhancedApi.credentials';
 
 import {
+	PACKAGE_VERSION,
+	connectionKey,
+	createMattermostSocket,
 	getAllowedEvents,
 	getEventsByResource,
-	InitClient,
+	releaseConnection,
+	takeOverConnection,
+	type ConnectionOwner,
 } from './GenericFunctions';
 import { Data, WebSocket } from 'ws';
 import { MattermostTriggerOptions } from './MattermostTriggerDescription';
 
 export class MattermostEnhancedTrigger implements INodeType {
 	description: INodeTypeDescription = {
-		// Basic node details will go here
-		properties: [
-			// Resources and operations will go here
-			...MattermostTriggerOptions,
-		],
+		properties: [...MattermostTriggerOptions],
 		displayName: 'Mattermost Enhanced Trigger',
 		name: 'mattermostEnhancedTrigger',
 		icon: 'file:mattermost-logo.svg',
 		group: ['trigger'],
 		version: 1,
 		description: 'Receive Mattermost Events with auto-reconnection and heartbeat monitoring',
+		subtitle: '={{$parameter["events"]}}',
 		defaults: {
 			name: 'Mattermost Trigger Enhanced',
 		},
@@ -60,24 +55,32 @@ export class MattermostEnhancedTrigger implements INodeType {
 		let heartbeatInterval: NodeJS.Timeout | null = null;
 		let pongTimeout: NodeJS.Timeout | null = null;
 		let isShuttingDown = false;
+		let generation = 0;
+		let openedAt = 0;
 
 		const credentials = (await this.getCredentials(
 			'mattermostTriggerEnhancedApi'
 		)) as MattermostEnhancedCredentialData;
 		const events = getAllowedEvents(this);
+		const slotKey = connectionKey(credentials.baseUrl, credentials.token || '');
+		const nodeName = this.getNode().name;
+		const workflowId = this.getWorkflow().id ?? 'unknown';
 
-		// Connection settings
-		const RECONNECT_DELAY = 5000; // 5s
-		const MAX_RECONNECT_DELAY = 60000; // 60s
-		const HEARTBEAT_INTERVAL = 30000; // 30s
-		const PONG_TIMEOUT = 10000; // 10s to wait for pong
-		const DEBUG_LOGGING = false; // Set to true for debug logs
+		const RECONNECT_DELAY = 5000;
+		const MAX_RECONNECT_DELAY = 60000;
+		const HEARTBEAT_INTERVAL = 30000;
+		const PONG_TIMEOUT = 10000;
+		const SHORT_FLAP_MS = 5000;
+		const DEBUG_LOGGING = false;
 		let reconnectDelay = RECONNECT_DELAY;
 		let reconnectAttempts = 0;
 
 		const log = (message: string, data?: unknown, forceLog = false) => {
 			if (DEBUG_LOGGING || forceLog) {
-				console.log(`[MattermostTrigger] ${message}`, data ?? '');
+				console.log(
+					`[MattermostTrigger][${PACKAGE_VERSION}][${workflowId}/${nodeName}] ${message}`,
+					data ?? '',
+				);
 			}
 		};
 
@@ -107,6 +110,14 @@ export class MattermostEnhancedTrigger implements INodeType {
 			}
 		};
 
+		const owner: ConnectionOwner = {
+			shutdown: () => {
+				isShuttingDown = true;
+				generation += 1;
+				cleanup();
+			},
+		};
+
 		const startHeartbeat = () => {
 			heartbeatInterval = setInterval(() => {
 				if (!client || client.readyState !== WebSocket.OPEN) {
@@ -115,18 +126,16 @@ export class MattermostEnhancedTrigger implements INodeType {
 				try {
 					log('Sending heartbeat ping');
 					client.ping();
-					
-					// Clear previous pong timeout
+
 					if (pongTimeout) {
 						clearTimeout(pongTimeout);
 					}
-					
-					// Set timeout for pong response
+
 					pongTimeout = setTimeout(() => {
 						log('Pong timeout - terminating connection', undefined, true);
 						try {
 							client?.terminate();
-						} catch (e) {
+						} catch {
 							// Ignore errors during termination
 						}
 					}, PONG_TIMEOUT);
@@ -153,132 +162,143 @@ export class MattermostEnhancedTrigger implements INodeType {
 			}
 		};
 
-		const connect = async (): Promise<void> => {
-			return new Promise((resolve, reject) => {
+		const connect = async (expectedGeneration: number): Promise<void> => {
+			if (isShuttingDown || expectedGeneration !== generation) {
+				return;
+			}
+
+			log(
+				`Connecting to Mattermost WebSocket... (attempt ${reconnectAttempts + 1})`,
+				undefined,
+				true,
+			);
+
+			const next = await createMattermostSocket(
+				credentials.baseUrl,
+				credentials.token || '',
+			);
+
+			if (isShuttingDown || expectedGeneration !== generation) {
+				next.terminate();
+				return;
+			}
+
+			client = next;
+			openedAt = Date.now();
+
+			client.on('message', (data: Data) => {
 				try {
-					log(`Connecting to Mattermost WebSocket... (attempt ${reconnectAttempts + 1})`, undefined, true);
-					client = InitClient(credentials.baseUrl, credentials.token || '');
+					const messageObj = JSON.parse(data.toString());
+					const event = messageObj.event;
 
-					const connectionTimeout = setTimeout(() => {
-						log('Connection timeout', undefined, true);
-						reject(new Error('Connection timeout'));
-					}, 30000);
+					if (event === 'hello') {
+						log('Received hello event');
+						return;
+					}
 
-					client.on('open', () => {
-						clearTimeout(connectionTimeout);
-						log('WebSocket connection established', undefined, true);
-						reconnectDelay = RECONNECT_DELAY;
-						reconnectAttempts = 0;
-						
-						// Send authentication challenge
-						sendAuthChallenge();
-						
-						// Start heartbeat
-						startHeartbeat();
-						resolve();
-					});
-
-					client.on('message', (data: Data) => {
+					if (event === 'ping') {
+						log('Received ping, sending pong');
 						try {
-							const messageObj = JSON.parse(data.toString());
-							const event = messageObj.event;
-
-							// Handle special events
-							if (event === 'hello') {
-								log('Received hello event');
-								return;
-							}
-
-							if (event === 'ping') {
-								log('Received ping, sending pong');
-								try {
-									client?.send(JSON.stringify({ 
-										seq: messageObj.seq || 0, 
-										action: 'pong' 
-									}));
-								} catch (e) {
-									log('Failed to send pong', e);
-								}
-								return;
-							}
-
-							// Process regular events
-							if (events.includes(event)) {
-								log(`Processing event: ${event}`);
-								this.emit([this.helpers.returnJsonArray([messageObj])]);
-							} else {
-								// Silently skip non-allowed events
-							}
+							client?.send(
+								JSON.stringify({
+									seq: messageObj.seq || 0,
+									action: 'pong',
+								}),
+							);
 						} catch (e) {
-							log('Failed to parse WebSocket data', { 
-								raw: data.toString().substring(0, 200), 
-								error: e 
-							});
+							log('Failed to send pong', e);
 						}
-					});
+						return;
+					}
 
-					client.on('pong', () => {
-						log('Received heartbeat pong');
-						// Clear pong timeout - connection is alive
-						if (pongTimeout) {
-							clearTimeout(pongTimeout);
-							pongTimeout = null;
-						}
+					if (events.includes(event)) {
+						log(`Processing event: ${event}`);
+						this.emit([this.helpers.returnJsonArray([messageObj])]);
+					}
+				} catch (e) {
+					log('Failed to parse WebSocket data', {
+						raw: data.toString().substring(0, 200),
+						error: e,
 					});
-
-					client.on('close', (code, reason) => {
-						clearTimeout(connectionTimeout);
-						log('WebSocket connection closed', { 
-							code, 
-							reason: reason?.toString(),
-							attempts: reconnectAttempts 
-						}, true);
-						cleanup();
-						
-						if (!isShuttingDown) {
-							scheduleReconnect();
-						}
-					});
-
-					client.on('error', (error) => {
-						clearTimeout(connectionTimeout);
-						log('WebSocket error', { error, attempts: reconnectAttempts }, true);
-						cleanup();
-						reject(error);
-					});
-				} catch (error) {
-					log('Failed to create WebSocket connection', error);
-					reject(error);
 				}
 			});
+
+			client.on('pong', () => {
+				log('Received heartbeat pong');
+				if (pongTimeout) {
+					clearTimeout(pongTimeout);
+					pongTimeout = null;
+				}
+			});
+
+			client.on('close', (code, reason) => {
+				const livedMs = openedAt ? Date.now() - openedAt : 0;
+				log(
+					'WebSocket connection closed',
+					{
+						code,
+						reason: reason?.toString(),
+						attempts: reconnectAttempts,
+						livedMs,
+					},
+					true,
+				);
+				cleanup();
+
+				if (!isShuttingDown && expectedGeneration === generation) {
+					if (livedMs >= SHORT_FLAP_MS) {
+						reconnectDelay = RECONNECT_DELAY;
+						reconnectAttempts = 0;
+					}
+					scheduleReconnect();
+				}
+			});
+
+			client.on('error', (error) => {
+				log('WebSocket error', { error, attempts: reconnectAttempts }, true);
+			});
+
+			log('WebSocket connection established', undefined, true);
+			sendAuthChallenge();
+			startHeartbeat();
 		};
 
 		const scheduleReconnect = () => {
 			if (isShuttingDown) {
 				return;
 			}
-			
+
+			const expectedGeneration = generation;
 			reconnectAttempts++;
-			log(`Scheduling reconnect in ${reconnectDelay}ms (attempt ${reconnectAttempts})`, undefined, true);
-			
+			log(
+				`Scheduling reconnect in ${reconnectDelay}ms (attempt ${reconnectAttempts})`,
+				undefined,
+				true,
+			);
+
 			reconnectTimeout = setTimeout(async () => {
+				if (isShuttingDown || expectedGeneration !== generation) {
+					return;
+				}
 				try {
-					await connect();
+					await connect(expectedGeneration);
 				} catch (error) {
 					log('Reconnect failed', { error, attempts: reconnectAttempts }, true);
-					// Exponential backoff with jitter
 					reconnectDelay = Math.min(
-						reconnectDelay * 2 + Math.random() * 1000, 
-						MAX_RECONNECT_DELAY
+						reconnectDelay * 2 + Math.random() * 1000,
+						MAX_RECONNECT_DELAY,
 					);
-					scheduleReconnect();
+					if (!isShuttingDown && expectedGeneration === generation) {
+						scheduleReconnect();
+					}
 				}
 			}, reconnectDelay);
 		};
 
-		// Initial connection
+		takeOverConnection(slotKey, owner);
+
 		try {
-			await connect();
+			await connect(generation);
 		} catch (error) {
 			log('Initial connection failed', error, true);
 			scheduleReconnect();
@@ -286,8 +306,8 @@ export class MattermostEnhancedTrigger implements INodeType {
 
 		const closeFunction = async () => {
 			log('Shutting down Mattermost trigger...', undefined, true);
-			isShuttingDown = true;
-			cleanup();
+			owner.shutdown();
+			releaseConnection(slotKey, owner);
 		};
 
 		const manualTriggerFunction = async () => {
@@ -296,14 +316,15 @@ export class MattermostEnhancedTrigger implements INodeType {
 				log('Connection already active');
 				return;
 			}
-			
-			// Reset state for manual trigger
+
 			isShuttingDown = false;
+			generation += 1;
 			reconnectDelay = RECONNECT_DELAY;
 			reconnectAttempts = 0;
-			
+			takeOverConnection(slotKey, owner);
+
 			try {
-				await connect();
+				await connect(generation);
 			} catch (error) {
 				log('Manual trigger connection failed', error, true);
 				scheduleReconnect();
