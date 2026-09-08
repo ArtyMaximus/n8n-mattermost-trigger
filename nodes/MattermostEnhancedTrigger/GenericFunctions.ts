@@ -1,3 +1,5 @@
+import http from 'http';
+import https from 'https';
 import {
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
@@ -29,14 +31,25 @@ export async function getToken(baseURl: string, username: string, password: stri
 export function InitClient(baseUrl: string, token: string): WebSocket {
 	const normalized = baseUrl.toLocaleLowerCase().trim().replace(/\/+$/, '');
 	const wsUrl = `${normalized.replace('https', 'wss').replace('http', 'ws')}/api/v4/websocket`;
-	return new WebSocket(wsUrl, {
+	const isSecure = wsUrl.startsWith('wss');
+	// Own Agent, not n8n 2.36 https.globalAgent (EnvProxyHttpsAgent).
+	// That patched agent + cluster hairpin closes the upgraded socket at ~3s with 1006.
+	const agent = isSecure ? new https.Agent() : new http.Agent();
+	const client = new WebSocket(wsUrl, {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
 		handshakeTimeout: 30000,
 		perMessageDeflate: false,
 		skipUTF8Validation: false,
+		agent,
 	});
+	const destroyAgent = () => {
+		agent.destroy();
+	};
+	client.once('close', destroyAgent);
+	client.once('error', destroyAgent);
+	return client;
 }
 
 export async function getEventsByResource(this: ILoadOptionsFunctions) {
